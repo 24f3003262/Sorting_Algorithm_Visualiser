@@ -1,10 +1,24 @@
 #include<SDL2/SDL.h>
+#include<SDL2/SDL_ttf.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include<time.h>
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define ARRAY_SIZE 100
+
+void render_text(SDL_Renderer* renderer,TTF_Font* font,const char* text,int x,int y){
+    SDL_Color color={255,255,255,255};
+    SDL_Surface* surface=TTF_RenderText_Solid(font,text,color);
+    SDL_Texture* texture=SDL_CreateTextureFromSurface(renderer,surface);
+
+    SDL_Rect dest={x,y,surface->w,surface->h};
+    SDL_RenderCopy(renderer,texture,NULL,&dest);
+
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+}
 
 void draw_array(SDL_Renderer* renderer,int arr[],int current_i,int current_j,int sweep)
 {
@@ -36,14 +50,22 @@ void draw_array(SDL_Renderer* renderer,int arr[],int current_i,int current_j,int
 int main(int argc,char* argv[])
 {
     SDL_Init(SDL_INIT_VIDEO);
+    TTF_Init();
+
     SDL_Window* window = SDL_CreateWindow("Sorting Visualiser",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,SCREEN_WIDTH,SCREEN_HEIGHT,0);
     SDL_Renderer* renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+
+    //Loading font
+    TTF_Font* font=TTF_OpenFont("arial.ttf",24);
+    if(!font){
+        printf("Error loading font: %s\n",TTF_GetError());
+    }
     
     int arr[ARRAY_SIZE];
     srand(time(NULL));
     for(int i=0;i<ARRAY_SIZE;i++)
     {
-        arr[i] = rand()%(SCREEN_HEIGHT-50)+10;
+        arr[i] = rand()%(SCREEN_HEIGHT-100)+10;
     }
 
     int running=1;
@@ -54,6 +76,15 @@ int main(int argc,char* argv[])
     int key=arr[i];
     int is_sorting=0;
     int complete_sweep=-1;
+
+    //Timer variabke
+    Uint32 start_time=0;
+    Uint32 end_time=0;
+    Uint32 last_time=0;
+    float total_sorting_time=0.0f;
+    bool timer_started=false;
+    char time_text[32]="Time: 0.00s";
+
     while(running)
     {
         while (SDL_PollEvent(&event)){
@@ -61,20 +92,43 @@ int main(int argc,char* argv[])
             else if(event.type == SDL_KEYDOWN){
                 if(event.key.keysym.sym == SDLK_SPACE){
                     is_sorting=!is_sorting;
+
+                    last_time=SDL_GetTicks();
+                    //Timer
+                    if(is_sorting && !timer_started){
+                        timer_started=true;
+                    }
+                    
                 }
-                else if(event.key.keysym.sym == SDLK_ESCAPE){
+                else if(event.key.keysym.sym == SDLK_r){
                     for(int k=0;k<ARRAY_SIZE;k++){
-                        arr[k]=rand()%(SCREEN_HEIGHT-50)+10;
+                        arr[k]=rand()%(SCREEN_HEIGHT-100)+10;
                     }
                     i=1;
                     j=0;
                     key=arr[i];
                     is_sorting=0;
                     complete_sweep=-1;
+                    timer_started=false;
+                    total_sorting_time=0.0f;
+                    sprintf(time_text,"Time: 0.00s");
                 }
             }
 
         }
+
+        Uint32 current_ticks=SDL_GetTicks();
+
+        Uint32 delta_ticks=current_ticks-last_time;
+        last_time=current_ticks;
+
+
+        //Timer Update
+        if(is_sorting && i<ARRAY_SIZE){
+            total_sorting_time += delta_ticks / 1000.0f;
+            sprintf(time_text, "Sorting Time: %.2fs", total_sorting_time);
+        }
+
         SDL_SetRenderDrawColor(renderer,0,0,0,255);
         SDL_RenderClear(renderer);
         
@@ -94,14 +148,23 @@ int main(int argc,char* argv[])
                 }
             }
         }
-        else if(is_sorting && i>=ARRAY_SIZE && complete_sweep<ARRAY_SIZE){
+        else if(i>=ARRAY_SIZE && complete_sweep<ARRAY_SIZE){
+            if(complete_sweep==-1){
+                sprintf(time_text,"Final Time: %.2fs",total_sorting_time);
+
+            }
             complete_sweep++;
-            SDL_Delay(20);
+            SDL_Delay(5);
         }
         //Render
         draw_array(renderer,arr,i,j,complete_sweep);
+
+        if (font) render_text(renderer,font,time_text,20,20);
+
         SDL_RenderPresent(renderer);
     }
+    TTF_CloseFont(font);
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
