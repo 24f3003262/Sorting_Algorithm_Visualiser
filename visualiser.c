@@ -76,6 +76,7 @@ int main(int argc,char* argv[])
     int key=arr[i];
     int is_sorting=0;
     int complete_sweep=-1;
+    int comparisons = 0;
 
     //Timer variabke
     Uint32 start_time=0;
@@ -111,7 +112,8 @@ int main(int argc,char* argv[])
                     complete_sweep=-1;
                     timer_started=false;
                     total_sorting_time=0.0f;
-                    sprintf(time_text,"Time: 0.00s");
+                    comparisons=0;
+                    sprintf(time_text,"Time: 0.00s | Comparisons: 0");
                 }
             }
 
@@ -126,7 +128,7 @@ int main(int argc,char* argv[])
         //Timer Update
         if(is_sorting && i<ARRAY_SIZE){
             total_sorting_time += delta_ticks / 1000.0f;
-            sprintf(time_text, "Sorting Time: %.2fs", total_sorting_time);
+            sprintf(time_text, "Sorting Time: %.2fs | Comparisons: %d", total_sorting_time, comparisons);
         }
 
         SDL_SetRenderDrawColor(renderer,0,0,0,255);
@@ -135,6 +137,7 @@ int main(int argc,char* argv[])
         //Array sort
         if(is_sorting&&i<ARRAY_SIZE)
         {
+            comparisons++;
             if(j>=0 && arr[j]>key){
                 arr[j+1]=arr[j];
                 j--;
@@ -147,10 +150,11 @@ int main(int argc,char* argv[])
                     j=i-1;
                 }
             }
+            SDL_Delay(5);
         }
         else if(i>=ARRAY_SIZE && complete_sweep<ARRAY_SIZE){
             if(complete_sweep==-1){
-                sprintf(time_text,"Final Time: %.2fs",total_sorting_time);
+                sprintf(time_text,"Final Time: %.2fs | Comparisons: %d",total_sorting_time,comparisons);
 
             }
             complete_sweep++;
